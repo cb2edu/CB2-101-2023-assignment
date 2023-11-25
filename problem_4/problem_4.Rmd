@@ -1,0 +1,43 @@
+---
+title: "Problem 4"
+output: html_document
+date: "2023-11-24"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### Prompt:
+
+Use Fermi estimation to estimate a quantity starting from very little knowledge. The more creative you are in creating the problem, the more kudos you will get. Describe the question you are trying to answer and how did you derive the answer.
+
+## Question: How many phospholipids compose the outer membrane of *Borrelia burgdorferi*?
+
+#### Assumptions:
+
+1.  **Size:**
+    -   Borrelia burgdorferi is, on average, about 20 micrometers in length and 0.3 micrometers in width.
+2.  **Shape:**
+    -   The bacterium is spiral-shaped, but we'll simplify it to a cylinder for the sake of estimation by doubling its length (imagine pulling a spring taunt).
+3.  **Area of the outer membrane:**
+    -   The surface area of a cylinder is given by the formula: $2\pi r^2 + 2\pi rh$, where $r$ is the radius and $h$ is the height. The outer membrane of Borrelia burgdorferi is composed of a lipid bilayer (without any LPS on the surface), so we should multiply whatever it takes to cover the surface by 2 in order to accound for each lipid layer.
+4.  **Average diameter of a phospholipid:**
+    -   A phospholipid might have a diameter of about 0.5 nanometers, since the width of a phsopholipid bilayer is about 5 nanometers (i.e. the length of a phospholipid is about 2.5 nanometers).
+
+#### Math:
+
+-   **Radius** ($r$): Assuming Borrelia is roughly cylindrical, it's radius should be half the average width at $r \approx 0.15$ micrometers.
+
+-   **Height** ($h$): around 40 micrometers.
+
+-   **Surface area of the outer membrane:** $2\pi \times (0.15 \, \text{micrometers})^2 + 2\pi \times 0.15 \, \text{micrometers} \times 40 \, \text{micrometers}$ = `r 2*pi*0.15^2 + 2*pi*0.15*40` $\mu\text{m}^2$
+
+-   **Area covered by one phospholipid:** $\pi \times (0.0005 \, \mu\text{m})^2$ = `r format(pi*0.0005^2, scientific = F, digits = 3)`$\mu\text{m}^2$ (0.5 nanometers = 0.0005 micrometers)
+
+-   **Number of phospholipids:** $\frac{\text{Surface area of outer membrane}}{\text{Area covered by one phospholipid}}\times 2$ = `r format((2*pi*0.15^2 + 2*pi*0.15*40)/(pi*0.0005^2)*2, scientific = F, big.mark = ",")` phospholipids
+
+## Answer: Aproximately 100 million phospholipids
+
+Note: This highly simplified estimation doesn't account for factors like lipid packing efficiency, variations in cell structure, outer membrane porins, etc.
+
