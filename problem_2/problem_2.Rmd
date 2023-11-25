@@ -1,0 +1,71 @@
+---
+title: "Problem 2"
+output: html_document
+date: "2023-11-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+Swissvar is a database of human gene, their variations, and disease associations. The file can be downloaded from here: <https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/variants/humsavar.txt>. The first column of this file contains the gene name and the rest of the columns contains the other information. Using this file:
+
+1.  list out the top five genes that are mutated in various human disease.
+
+```{r}
+# download.file("https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/variants/humsavar.txt", destfile = "humsavar.txt")
+
+humsavar_lines <- readLines("humsavar.txt")
+# head(humsavar_lines, n = 45)
+# tail(humsavar_lines)
+
+start <- grep("^gene name", humsavar_lines)
+end <- grep("^$", humsavar_lines)
+end <- end[length(end)]
+
+humsavar <- humsavar_lines[(start+2):(end-1)]
+# head(humsavar, n = 2); tail(humsavar, n = 2)
+
+df <- read.table(textConnection(humsavar), fill = T, stringsAsFactors = T, sep = "", flush = T)
+# humsavar_lines[start]
+names(df) <- c("gene_name", "accession", "FTId", "aa_change", "var_category", "dbSNP", "disease_name")
+df <- df[!colnames(df) %in% "disease_name"]
+
+dis_vars <- df |> 
+  filter(var_category %in% "LP/P") |> 
+  summarise(.by = c("gene_name", "accession"), n = n()) |> 
+  arrange(desc(n)) 
+
+# write_tsv(dis_vars, "../data/dis_vars.tsv")
+
+dis_vars |> slice_head(n = 5)
+```
+
+2.  plot the frequency distribution of disease variants in human genome across all the genes in the file.
+3.  calculate the average number disease causing mutations across all genes in human genome and mark this number on the previous plot as veritcal red line.
+
+```{r}
+ggplot(dis_vars, aes(x = n)) +
+  geom_histogram(binwidth = 5, fill = "blue3") +
+  geom_vline(xintercept = mean(dis_vars$n), color = "red3") + 
+  labs(x = "Number of Mutations per Gene", y = "Count", title = "Human Disease Causing Variants")+
+  theme_bw()
+```
+
+4.  The 4th column of this file contains the amino acid affected by the the mutation like this: p.Gly477Arg. The p indicates it is protein sequence. Then the 3 letter code of the aa affected then the position in number and then three letter code for the aa that the position changed to. You should write a regular expression to extract the affected aa. Plot a graph showing the fraction of mutations affecting each 20 amino acid on the x-axis. Which amino acid has the highest probablity of getting mutated? **Arginine has the highest probability of being mutated**
+
+```{r}
+df$effect_res <- str_match(df$aa_change, pattern = "^p.([A-Za-z]+)\\d")[,2]
+
+mut <- df |> 
+  summarise(.by = effect_res, n = n()) |> 
+  mutate(prop = n/sum(n))
+
+ggplot(mut, aes(y = prop, x = fct_reorder(effect_res, desc(prop)), fill = effect_res))+
+  geom_bar(stat = "identity", show.legend = F) +
+  labs(y = "Proportion", x = "Effected Residues", title = "Human Disease Causing Variants") +
+  coord_flip() +
+  theme_bw() 
+```
