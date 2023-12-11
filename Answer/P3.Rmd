@@ -1,0 +1,105 @@
+---
+title: "Problem 3"
+author: "Maryam Gholampour"
+date: "2023-12-11"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r}
+#Plot
+
+file_url <- "https://github.com/cb2edu/CB2-101-2023-assignment/raw/main/data/Homo_sapiens.gene_info.gz"
+
+download.file(file_url, destfile = "Homo_sapiens.gene_info.gz")
+
+data <- read.table("Homo_sapiens.gene_info.gz", header = TRUE, sep = "\t", quote
+= "", comment.char = "", stringsAsFactors = FALSE)
+
+subset_data <- data[, c(3, 7)]
+
+gene_counts <- table(subset_data$chromosome)
+gene_counts_df <- as.data.frame(gene_counts)
+names(gene_counts_df) <- c("Chromosome", "GeneCount")
+
+gene_counts_df_filtered <- gene_counts_df[!grepl("\\|", gene_counts_df$Chromosome), ]
+
+gene_counts_df_filtered <- gene_counts_df_filtered[gene_counts_df_filtered$Chromosome != "-", ]
+
+gene_counts_df_filtered$Chromosome <- factor(gene_counts_df_filtered$Chromosome,
+levels = unique(gene_counts_df_filtered$Chromosome))
+
+library(ggplot2)
+
+gg_plot <- ggplot(gene_counts_df_filtered, aes(x = Chromosome, y = GeneCount)) +
+  geom_bar(stat = "identity", fill = "gray", color = "black") +
+  labs(title = "Number of genes in each chromosome",
+       x = "Chromosomes",
+       y = "Gene count") +
+  theme_minimal()
+
+ggsave("plot_output.pdf", plot = gg_plot, width = 8, height = 4)
+
+print(gg_plot)
+
+```
+
+```{r}
+#Is there any correlation between number of genes and chromosome length?
+
+library(ggplot2)
+
+chromosome_lengths <- data.frame(
+  chromosome = c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "X", "Y"),
+  length = c(249250621, 243199373, 198022430, 191154276, 180915260, 171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 78077248, 59128983, 63025520, 48129895, 51304566, 155270560, 59373566),
+  genes = c(20526, 18637, 13049, 11320, 11301, 9363, 8743, 8387, 8510, 7676, 7780, 6693, 4073, 4290, 3021, 8414, 13973, 4580, 2243, 2134, 2821, 2068, 15576, 872)
+)
+
+linear_model <- lm(genes ~ length, data = chromosome_lengths)
+
+summary_linear_model <- summary(linear_model)
+
+ggplot(chromosome_lengths, aes(x = length, y = genes)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE, color = "red") +
+  labs(title = "Regression Analysis: Genes vs Chromosome length",
+       x = "Chromosome length",
+       y = "Number of genes")
+
+print(summary_linear_model)
+
+chromosome_lengths$expected_genes <- predict(linear_model, newdata = chromosome_lengths)
+
+chromosome_lengths$deviation <- chromosome_lengths$genes - chromosome_lengths$expected_genes
+
+print(chromosome_lengths[, c("chromosome", "genes", "expected_genes", "deviation")])
+
+confidence_interval <- confint(linear_model)
+print(confidence_interval)
+
+```
+
+```{r}
+#In earlier problem we calculated the frequency of disease variant in each gene in human genome. Can you evaluate whether any human chromosome has more concentration of disease variants?
+
+download.file("https://github.com/cb2edu/CB2-101-2023-assignment/raw/main/data/humsavar.tsv.gz", destfile = "humsavar.tsv.gz")
+
+data2 <- read.table(gzfile("humsavar.tsv.gz"), header = TRUE, sep = "\t", quote = "", comment.char = "", fill = TRUE)
+
+colnames(data2) <- c("Symbol", "swiss_prot_ac", "ftid", "aa_changes", "variant", "dbsnp")
+
+subset_data2 <- data2[, c("Symbol", "variant")]
+
+merged_data <- merge(subset_data, subset_data2, by = "Symbol")
+
+disease_variants <- merged_data[merged_data$variant == "LP/P", ]
+
+chromosome_concentration <- table(disease_variants$chromosome)
+
+chromosome_with_highest_concentration <- names(which.max(chromosome_concentration))
+
+cat("Chromosome with the highest concentration of disease variants:", chromosome_with_highest_concentration)
+
+```
+

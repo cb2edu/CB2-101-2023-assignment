@@ -1,0 +1,68 @@
+---
+title: "Problem 2"
+author: "Maryam Gholampour"
+date: "2023-12-11"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r}
+#list out the top five genes that are mutated in various human disease.
+
+download.file("https://github.com/cb2edu/CB2-101-2023-assignment/raw/main/data/humsavar.tsv.gz", destfile = "humsavar.tsv.gz")
+
+data <- read.table(gzfile("humsavar.tsv.gz"), header = TRUE, sep = "\t", quote = "", comment.char = "", fill = TRUE)
+
+colnames(data) <- c("gene_names", "swiss_prot_ac", "ftid", "aa_changes", "variant", "dbsnp")
+
+gene_names <- data$gene_names
+
+gene_counts <- table(gene_names)
+
+gene_counts_df <- as.data.frame(table(gene_names))
+
+gene_names <- data.frame(Gene = character(), Mutation_Count = numeric())
+
+colnames(gene_counts_df) <- c("Gene", "Mutation_Count")
+
+library(dplyr)
+gene_counts_df <- arrange(gene_counts_df, desc(gene_counts_df$Mutation_Count))
+top_five_genes <- head(gene_counts_df, 5)
+print(top_five_genes
+      )
+
+```
+
+```{r}
+#plot the frequency distribution of disease variants in human genome across all the genes in the file
+library(ggplot2)
+
+p <- ggplot(data, aes(x = variant)) +
+  geom_bar(stat = "count", fill = "blue") +
+  labs(title = "Frequency Distribution of Disease Variants",
+       x = "Disease Variants",
+       y = "Frequency") +
+  theme_minimal()
+print(p)
+```
+  
+```{r}
+#Plot a graph showing the fraction of mutations affecting each 20 amino acid on the x-axis. Which amino acid has the highest probablity of getting mutated?
+
+amino_acid <- sub(".*p\\.([A-Za-z]{3})\\d+.*", "\\1", data$aa_change)
+
+aa_counts <- table(amino_acid)
+aa_probabilities <- as.data.frame(table(amino_acid))
+aa_probabilities$freq_new <- aa_counts / sum(aa_counts)
+
+library(ggplot2)
+
+ggplot(aa_probabilities, aes(x = amino_acid, y = freq_new)) +
+  geom_bar(stat = "identity", color = "black") +
+  labs(title = "Fraction of Mutations Affecting Each Amino Acid",
+       x = "Amino Acid", y = "Frequency") +
+  theme_minimal()
+
+```
+
