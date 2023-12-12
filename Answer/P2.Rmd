@@ -33,20 +33,31 @@ print(top_five_genes
       )
 
 ```
-
+  
 ```{r}
-#plot the frequency distribution of disease variants in human genome across all the genes in the file
+#plot the frequency distribution of disease variants in human genome across all the genes in the file.
+#calculate the average number disease causing mutations across all genes in human genome and mark this number on the previous plot as veritcal red line.
+
 library(ggplot2)
 
-p <- ggplot(data, aes(x = variant)) +
-  geom_bar(stat = "count", fill = "blue") +
-  labs(title = "Frequency Distribution of Disease Variants",
-       x = "Disease Variants",
-       y = "Frequency") +
+data <- read.table(gzfile("humsavar.tsv.gz"), header = TRUE, sep = "\t", quote = "", comment.char = "", fill = TRUE)
+
+colnames(data) <- c("gene_names", "swiss_prot_ac", "ftid", "aa_changes", "variant", "dbsnp")
+
+disease_variant <- data %>%
+  filter(variant %in% "LP/P") %>%
+  group_by(gene_names, swiss_prot_ac) %>%
+  summarise(n = n())
+
+ggplot(disease_variant, aes(x = n)) +
+  geom_histogram(binwidth = 10, fill = "black") +
+  geom_vline(xintercept = mean(disease_variant$n), color = "red") + 
+  labs(x = "Number of Mutations per Gene", y = "Frequency", title = "Frequency Distribution of Disease Variants Across Genes")+
   theme_minimal()
-print(p)
+
 ```
-  
+
+
 ```{r}
 #Plot a graph showing the fraction of mutations affecting each 20 amino acid on the x-axis. Which amino acid has the highest probablity of getting mutated?
 
