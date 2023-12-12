@@ -42,8 +42,8 @@ correlation
 
 
 ggplot(chromosome_data, aes(x = as.numeric(gsub(",", "", Length_C)), y = Gene_Count)) +
-  geom_point() +  # Scatter plot of the data points
-  geom_smooth(method = "lm", formula = y ~ x, se = FALSE, color = "red") +  # Fitted regression line
+  geom_point() +  
+  geom_smooth(method = "lm", formula = y ~ x, se = FALSE, color = "red") +  
   labs(x = "Length of Chromosome", y = "Gene Count", title = "Fitted Regression Line") +
   theme_minimal()
 
