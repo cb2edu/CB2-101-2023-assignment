@@ -1,0 +1,192 @@
+---
+title: "final assignment"
+author: "Namrata Roy"
+date: "2023-12-05"
+output: html_document
+editor_options: 
+  chunk_output_type: inline
+---
+```{r}
+#Problem 2
+r <- readLines("https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/variants/humsavar.txt",skipNul = T)
+begin <- grep("^____", r, perl = T)
+end <- grep("^---", r, perl = T)
+end <- end[4]
+r_data <- r[(begin+1):(end-2)]
+d <- read.table(textConnection(r_data), fill = T, stringsAsFactors = F, sep="", flush = T)
+d<- d[, -ncol(d)]
+write.table(d, "humsavar.tsv", row.names = F, col.names = F, quote = F, sep="\t")
+###
+```
+```{r}
+#(1)
+# Filter data where Variant is not equal to LB/B
+filtered_data <- subset(d, V5 != "LB/B")
+Gene_counts <- table(filtered_data$V1)
+```
+```{r}
+# Sort the frequencies in descending order
+sorted_Gene_counts <- sort(Gene_counts, decreasing = TRUE)
+# Select the top 5 categories based on frequency
+top_5_categories <- head(sorted_Gene_counts, 5)
+# Display the top 5 categories and their frequencies
+top_5_categories
+```
+```{r}
+#(2)
+# Plot frequency distribution of disease variants
+install.packages("ggplot2")
+library(ggplot2)
+
+ggplot(filtered_data, aes(y = V1)) +
+  geom_bar(fill = "skyblue", color = "black") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1)) +
+  labs(title = "Frequency Distribution of Disease Variants Across Genes", x = "Frequency", y = "Genes")
+```
+```{r}
+#(3)
+# Calculate average number of disease-causing mutations across all genes
+average_mutations <- mean(Gene_counts)
+# Update the previous plot with the average line
+ggplot(filtered_data, aes(y = V1)) +
+  geom_bar(fill = "skyblue", color = "black") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1)) +
+  labs(title = "Frequency Distribution of Disease Variants Across Genes", x = "Frequency", y = "Genes") +
+  geom_vline(xintercept = average_mutations, color = "red", linetype = "dashed")
+```
+```{r}
+#(4)
+# Extract affected amino acids from the mutation descriptions
+mutations <- filtered_data$V4
+affected_aa <- gsub(".*p\\.([A-Z][a-z]{2})(\\d+)[A-Z][a-z]{2}.*", "\\1", mutations)
+
+# Count occurrences of affected amino acids
+aa_counts <- table(affected_aa)
+
+# Plot fraction of mutations affecting each amino acid
+aa_freq <- aa_counts / sum(aa_counts)
+aa_freq <- aa_freq[order(names(aa_freq))]
+# Define the vector of amino acid names
+amino_acids <- names(aa_freq)
+# Plot the bar plot with amino acid names on the X-axis
+barplot(aa_freq, col = "gray", 
+        main = "Fraction of Mutations Affecting Each Amino Acid", 
+        xlab = "Amino Acid", ylab = "Fraction",
+        names.arg = amino_acids,
+        las = 2, cex.names = 0.8)
+```
+```{r}
+##Problem3
+#(a)
+install.packages("data.table")
+library(data.table)
+
+install.packages("ggplot2")
+library(ggplot2)
+file_path <- "/home/cb2user/Downloads/Homo_sapiens.gene_info"
+# Read the tab-delimited gene_info file
+gene_info <- read.delim(file_path)
+# Subset the gene_info data frame to include only 'Symbol' and 'chromosome' columns
+gene_info_subset <- gene_info[, c("Symbol", "chromosome")]
+head(gene_info_subset)
+# Remove rows with | in the chromosome column
+gene_info_clean <- gene_info_subset[!grepl("\\|", gene_info_subset$chromosome), ]
+# Convert chromosome column to factor with ordered levels
+gene_info_clean$chromosome <- factor(gene_info_clean$chromosome,
+                                     levels = c(as.character(1:22), "X", "Y"))
+# Count the number of genes in each chromosome
+chromosome_counts <- table(gene_info_clean$chromosome)
+# Convert counts to a data frame
+chromosome_data <- data.frame(Chromosome = names(chromosome_counts),
+                              Gene_Count = as.numeric(chromosome_counts))
+# Create the ordered bar plot
+install.packages("ggplot2")
+library(ggplot2)
+
+ggplot(chromosome_data, aes(x = Chromosome, y = Gene_Count)) +
+  geom_bar(stat = "identity", fill = "grey") +
+  labs(x = "Chromosomes", y = "Gene Count", title = "Number of genes in each chromosome") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+
+```
+```{r}
+#(b)
+new_values <- c(
+  248956422, 242193529, 198295559, 190214555, 181538259, 170805979, 159345973, 145138636,138394717, 133797422,
+  135086622, 133275309, 114364328, 107043718, 101991189, 90338345, 83257441, 80373285, 58617616, 64444167, 46709983, 50818468, 156040895,
+  57227415)
+
+# Add the 'Length_C' column to the chromosome_data
+chromosome_data$Length_C <- new_values
+chromosome_data
+# Fit a linear regression model
+model <- lm(Gene_Count ~ Length_C,  data = chromosome_data)
+summary(model)
+
+# correlation coefficient
+correlation <- cor(chromosome_data$Gene_Count, chromosome_data$Length_C)
+correlation
+
+# plot the regression data with the trendline
+ggplot(chromosome_data, aes(x = as.numeric(gsub(",", "", Length_C)), y = Gene_Count)) +
+  geom_point() +  # Scatter plot of the data points
+  geom_smooth(method = "lm", formula = y ~ x, se = FALSE, color = "blue") +  # Fitted regression line
+  labs(x = "Length of Chromosome", y = "Gene Count", title = "Fitted Regression Line") +
+  theme_minimal()
+# Calculate the Rˆ2 and other statistics to determine
+#R-squared:  0.7158,
+# p-value: 1.912e-07
+#Model is significant
+#Number of Genes Expected for each Chromosome
+# Get the fitted values
+fitted_values <- predict(model, newdata = chromosome_data)
+fitted_values
+#95% CConfidence interval for Regression
+ggplot(chromosome_data, aes(x=Length_C, y=Gene_Count)) + 
+  geom_point(color='#2980B9', size = 4) + 
+  geom_smooth(method=lm, color='#2C3E50')+labs(x = "Length of Chromosome", y = "Gene Count", title = "Fitted Regression Line")
+```
+
+
+```{r}
+#(c)
+# Function to get chromosome name with highest or lowest count
+get_chromosome <- function(data, type = "highest") {
+  if (type == "highest") {
+    return(data$Chromosome[which.max(data$Gene_Count)])
+  } else if (type == "lowest") {
+    return(data$Chromosome[which.min(data$Gene_Count)])
+  } else {
+    stop("Invalid type argument. Please use 'highest' or 'lowest'.")
+  }
+}
+
+highest_count_chromosome <- get_chromosome(chromosome_data, "highest")
+lowest_count_chromosome <- get_chromosome(chromosome_data, "lowest")
+
+cat("Chromosome with the highest count:", highest_count_chromosome, "\n")
+cat("Chromosome with the lowest count:", lowest_count_chromosome, "\n")
+
+
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

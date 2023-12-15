@@ -1,0 +1,9 @@
+#estimate the number of mitochondria in the human body
+
+#known fact - a human cell typically contains several hundred to a few thousand mitochondria
+
+#assumptions - about 30 trillion cells in a human body
+
+#estimate - around 1000 mitochondria / cell
+
+#final calculation based on assumptions and estimates - 30 trillion cells x 1000 mitochondria / cell = 30 quadrillion mitochondria
