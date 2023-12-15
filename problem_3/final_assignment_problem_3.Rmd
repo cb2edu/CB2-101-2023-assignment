@@ -1,0 +1,143 @@
+---
+title: "problem_3"
+author: "Kim"
+date: "2023-12-14"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+## Problem 3
+
+1. Use R and ggplot2 package to draw a plot of number of genes per chromosome in human genomes. This task requires the data file Homo_sapiens.gene.info.gz. You need to use columns 3 and 7 indicating Symbol and chromosome respectively. You script should create a plot exactly as shown below. Save the plot to PDF file.
+
+2. The longer chromosome might have higher frequency of genes most probably by chance. We will test this hypothesis. You can find the length information of each chromosome here: https://www.ncbi.nlm.nih.gov/grc/human/data. Is there any correlation between number of genes and chromosome length? Also, plot the regression data with the trendline. Calculate the Rˆ2 and other statistics to determine whether the fit is significant. From the regression equation estimate the number of genes expected for each chromosome. Then evaluate whether any chromosome has higher or lower concentration of genes. Hint: Ignore MT and UN. You need to find 95% confidence interval of the regression. Read more about it here: https://rpubs.com/aaronsc32/regression-confidence-prediction-intervals
+
+3. In earlier problem we calculated the frequency of disease variant in each gene in human genome. Can you evaluate whether any human chromosome has more concentration of disease variants?
+Data: Homo_sapiens.gene_info.gz . This is a tab-delimited text file that contains information about 2
+all the genes in the human genome. If you are interested in more about this file format check here: https://ftp.ncbi.nih.gov/gene/DATA/README.
+Note:: The figure should exactly look like the above figure. There are some data in the chromosome column that are ambiguous and looks like this: 10|19|3. You need to discard all row where the chromosome value contains a |.
+
+```{r}
+
+# Packages
+library(ggplot2) ; library(dplyr)
+
+setwd("/n/projects/ke2488/class/2023/fall/CB2-101_bioinformatics/final_assignment/CB2-101-2023-assignment/problem_3/")
+
+# Question 1
+
+human.data <- read.table(gzfile("/n/projects/ke2488/class/2023/fall/CB2-101_bioinformatics/final_assignment/CB2-101-2023-assignment/data/Homo_sapiens.gene_info.gz"), fill = T)  
+
+human.data.filterd <- human.data %>%
+  plyranges::filter(human.data$V7 %in% c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "X", "Y", "MT", "Un"))
+
+gene_count <- human.data.filterd %>%
+  group_by(V7) %>%
+  summarise(Count = n())
+
+gene_count$V7 <- factor(gene_count$V7, levels = c(as.character(1:22), "X", "Y", "MT", "Un"))
+
+ggplot <- ggplot(data = gene_count, aes(x = V7, y = Count)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(x = "Chromosomes", y = "Gene count", title = "Number of genes in each chromosome")
+
+ggplot
+
+ggsave("plot.pdf", plot = ggplot, width = 8, height = 6)
+
+
+# Question 2
+
+# The is a correlation between number of genes and chromosome length. Chromosome 1 is the longest chromosome and the highest number of genes are found there.
+
+chromosome_numeric <- as.numeric(gene_count$V7)
+
+ggplot(data = gene_count, aes(x = V7, y = Count)) +
+  geom_bar(stat = "identity", position = "stack") +
+  geom_smooth(aes(x = chromosome_numeric, y = Count), method = "lm", se = FALSE, color = "red") +
+  labs(x = "Chromosomes", y = "Gene count", title = "Number of genes in each chromosome")
+
+linear_model <- lm(Count ~ chromosome_numeric, data = gene_count)
+
+summary(linear_model)
+
+# The p-value of 1.28e-12 *** would suggest that the fit is significant
+
+intercept <- coef(linear_model)[1]
+slope <- coef(linear_model)[2]
+
+gene_est <- function(chromosome_number) {
+  estimate <- intercept + slope * chromosome_number
+  return(estimate)
+}
+
+chromosomes <- unique(chromosome_numeric)
+estimate <- gene_est(chromosomes)
+
+conf_int <- predict(linear_model, interval = "confidence", level = 0.95)
+
+lower_bounds <- conf_int[, "lwr"]
+upper_bounds <- conf_int[, "upr"]
+
+
+actual_counts <- gene_count$Count
+
+outside_interval <- gene_count$V7[actual_counts < lower_bounds | actual_counts > upper_bounds]
+
+outside_interval
+
+# Question 3
+
+raw.data <- read.table("/n/projects/ke2488/class/2023/fall/CB2-101_bioinformatics/final_assignment/CB2-101-2023-assignment/problem_2/humsavar_noheader.txt", fill = T, stringsAsFactors = F, sep="", flush = T)
+
+colnames(raw.data) <- c("Main_gene_name","SwissProt_AC","FTId", "AA_change", "Variant_category", "dbSNP", "Disease_name")
+
+variantsPerGene <- raw.data %>% count(Main_gene_name)
+variantsPerGene <- variantsPerGene[order(variantsPerGene$n, decreasing = TRUE),]
+
+# ggplot(data = variantsPerGene) +
+#   geom_bar(mapping = aes(x = Main_gene_name, y = n), stat = "identity")
+
+# human.data.filterd
+human.data.filterd.df <- human.data.filterd[,c("V3","V7")]
+
+colnames(human.data.filterd.df) <- c("Main_gene_name","Chromosome")
+
+length(variantsPerGene$Main_gene_name)
+
+length(human.data.filterd.df$Main_gene_name)
+
+joined.df<-dplyr::left_join(x=human.data.filterd.df %>% as.data.frame(),
+                                                      y=variantsPerGene, by="Main_gene_name")
+
+filtered_joined.df <- joined.df %>% plyranges::filter(joined.df$n != "NA")
+
+gene_count_per_chromosome <- filtered_joined.df %>%
+  group_by(Chromosome) %>%
+  summarise(Count = n())
+
+ggplot(data = gene_count_per_chromosome, aes(x = Chromosome, y = Count)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(x = "Chromosomes", y = "Chromosome Variants", title = "Number of variants in each chromosome")
+
+chrom_num <- as.numeric(gene_count_per_chromosome$Count)
+
+linear_model_2 <- lm(Count ~ chrom_num, data = gene_count_per_chromosome)
+
+summary(linear_model_2)
+
+conf_int_2 <- predict(linear_model_2, interval = "confidence", level = 0.95)
+
+lower_bounds <- conf_int_2[, "lwr"]
+upper_bounds <- conf_int_2[, "upr"]
+
+actual_counts <- gene_count_per_chromosome$Count
+
+outside_interval <- gene_count_per_chromosome$Chromosome[actual_counts < lower_bounds | actual_counts > upper_bounds]
+
+outside_interval
+
+```
+
+

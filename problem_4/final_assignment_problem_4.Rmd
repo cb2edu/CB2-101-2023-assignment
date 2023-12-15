@@ -1,0 +1,24 @@
+---
+title: "problem_4"
+author: "Kim"
+date: "2023-12-14"
+output: html_document
+---
+
+## Problem 4
+
+Use Fermi estimation (Lecture 1) to estimate a quantity starting from very little knowledge. The more creative you are in creating the problem, the more kudos you will get. Describe the question you are trying to answer and how did you derive the answer.
+
+A Fermi estimation for the number of pizzas sold to families in Kansas City in 2023 is about 6,100,728 pizzas
+
+Know that:
+•	the population of Kansas City is 508,394.
+•	Average family size in Kansas City is 2.31 people (will round up to 3)
+
+Will assume that: 
+•	the average Kansas Citian and their families consumes 3 pizzas a month.
+
+Based on this:
+•	The total number of families in Kansas City is: 508,394 / 3 = 169,465 families
+•	The total number of pizzas consumed in a month for all families in Kansas City is: 169,465 x 3 = 508,394
+•	The total number of pizzas consumed in a year for all families in Kansas City is: 508,394 x 12 = 6,100,728 pizzas. That is A LOT OF PIZZA.
